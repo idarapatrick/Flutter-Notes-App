@@ -35,10 +35,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ElevatedButton(
               onPressed: () async {
                 final user = FirebaseAuth.instance.currentUser;
+                final messenger = ScaffoldMessenger.of(context);
                 await user?.updateDisplayName(
                   _displayNameController.text.trim(),
                 );
-                ScaffoldMessenger.of(context).showSnackBar(
+                messenger.showSnackBar(
                   const SnackBar(
                     content: Text('Display name updated!'),
                     backgroundColor: Colors.green,
@@ -57,8 +58,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ElevatedButton(
               onPressed: () async {
                 final user = FirebaseAuth.instance.currentUser;
+                final messenger = ScaffoldMessenger.of(context);
                 await user?.updatePassword(_passwordController.text.trim());
-                ScaffoldMessenger.of(context).showSnackBar(
+                messenger.showSnackBar(
                   const SnackBar(
                     content: Text('Password updated!'),
                     backgroundColor: Colors.green,
