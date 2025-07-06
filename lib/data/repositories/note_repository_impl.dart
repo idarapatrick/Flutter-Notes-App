@@ -31,7 +31,6 @@ class NoteRepositoryImpl implements NoteRepository {
 
   @override
   Future<void> addNote(String text) async {
-    print('addNote called, userId=$_userId');
     if (_userId == null) throw Exception('User not authenticated');
     final now = DateTime.now();
     try {
@@ -41,9 +40,7 @@ class NoteRepositoryImpl implements NoteRepository {
         'updatedAt': Timestamp.fromDate(now),
         'userId': _userId,
       });
-      print('Note added successfully');
     } catch (e) {
-      print('Error adding note: $e');
       rethrow;
     }
   }

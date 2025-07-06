@@ -20,6 +20,13 @@ class _NotesListScreenState extends State<NotesListScreen> {
   String _searchQuery = '';
 
   @override
+  void initState() {
+    super.initState();
+    // Fetch notes when the screen is first loaded
+    context.read<NotesBloc>().add(FetchNotes());
+  }
+
+  @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
@@ -38,7 +45,7 @@ class _NotesListScreenState extends State<NotesListScreen> {
       },
       builder: (context, state) {
         return Scaffold(
-          backgroundColor: Theme.of(context).colorScheme.background,
+          backgroundColor: Theme.of(context).colorScheme.surface,
           appBar: AppBar(
             title: const Text('My Notes'),
             backgroundColor: Theme.of(context).colorScheme.primary,
@@ -57,29 +64,39 @@ class _NotesListScreenState extends State<NotesListScreen> {
                   if (value == 'theme') {
                     final cubit = context.read<ThemeCubit>();
                     final mode = cubit.state;
-                    cubit.setTheme(
-                      mode == ThemeMode.light
-                          ? ThemeMode.dark
-                          : ThemeMode.light,
-                    );
+                    if (mode == ThemeMode.system) {
+                      cubit.setTheme(ThemeMode.light);
+                    } else if (mode == ThemeMode.light) {
+                      cubit.setTheme(ThemeMode.dark);
+                    } else {
+                      cubit.setTheme(ThemeMode.system);
+                    }
                   } else if (value == 'profile') {
                     Navigator.of(context).pushNamed('/profile');
                   }
                 },
-                itemBuilder: (context) => [
-                  const PopupMenuItem(
-                    value: 'theme',
-                    child: Text('Toggle Theme'),
-                  ),
-                  const PopupMenuItem(
-                    value: 'profile',
-                    child: Text('Profile/Settings'),
-                  ),
-                ],
+                itemBuilder: (context) {
+                  final mode = context.watch<ThemeCubit>().state;
+                  String themeLabel;
+                  if (mode == ThemeMode.system) {
+                    themeLabel = 'Theme: System (tap to Light)';
+                  } else if (mode == ThemeMode.light) {
+                    themeLabel = 'Theme: Light (tap to Dark)';
+                  } else {
+                    themeLabel = 'Theme: Dark (tap to System)';
+                  }
+                  return [
+                    PopupMenuItem(value: 'theme', child: Text(themeLabel)),
+                    const PopupMenuItem(
+                      value: 'profile',
+                      child: Text('Profile/Settings'),
+                    ),
+                  ];
+                },
               ),
             ],
           ),
-          body: Container(
+          body: SizedBox(
             width: double.infinity,
             height: double.infinity,
             child: Column(
@@ -106,7 +123,7 @@ class _NotesListScreenState extends State<NotesListScreen> {
                   Padding(
                     padding: const EdgeInsets.all(12.0),
                     child: Card(
-                      color: Colors.red[50],
+                      color: Colors.red.shade50,
                       elevation: 4,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -131,9 +148,9 @@ class _NotesListScreenState extends State<NotesListScreen> {
           ),
           floatingActionButton: FloatingActionButton(
             backgroundColor: Theme.of(context).colorScheme.secondary,
-            child: const Icon(Icons.add, color: Colors.white),
             onPressed: () => _showAddNoteDialog(context),
             tooltip: 'Add Note',
+            child: const Icon(Icons.add, color: Colors.white),
           ),
         );
       },
@@ -190,7 +207,7 @@ class _NotesListScreenState extends State<NotesListScreen> {
         ),
         title: Text(
           note.text.length > 100
-              ? note.text.substring(0, 100) + '...'
+              ? '${note.text.substring(0, 100)}...'
               : note.text,
           maxLines: 3,
           overflow: TextOverflow.ellipsis,
@@ -342,33 +359,42 @@ class _NotesListScreenState extends State<NotesListScreen> {
   }
 
   void _showDeleteDialog(BuildContext context, Note note) {
+    final notesBloc = context.read<NotesBloc>();
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Theme.of(context).cardColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: const Text('Delete Note', style: TextStyle(color: Colors.red)),
-        content: const Text('Are you sure you want to delete this note?'),
-        actions: [
-          TextButton(
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-            onPressed: () => Navigator.of(context).pop(),
+      builder: (dialogContext) => BlocProvider.value(
+        value: notesBloc,
+        child: AlertDialog(
+          backgroundColor: Theme.of(context).cardColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Delete', style: TextStyle(color: Colors.white)),
-            onPressed: () {
-              context.read<NotesBloc>().add(DeleteNote(note.id));
-              Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Note deleted!'),
-                  backgroundColor: Colors.red,
-                ),
-              );
-            },
-          ),
-        ],
+          title: const Text('Delete Note', style: TextStyle(color: Colors.red)),
+          content: const Text('Are you sure you want to delete this note?'),
+          actions: [
+            TextButton(
+              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+              onPressed: () => Navigator.of(dialogContext).pop(),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              child: const Text(
+                'Delete',
+                style: TextStyle(color: Colors.white),
+              ),
+              onPressed: () {
+                dialogContext.read<NotesBloc>().add(DeleteNote(note.id));
+                Navigator.of(dialogContext).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Note deleted!'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
