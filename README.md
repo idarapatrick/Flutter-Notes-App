@@ -27,8 +27,8 @@ A modern, cross-platform notes app built with Flutter, Firebase Authentication, 
 
 ### 1. Clone the repository
 ```sh
-git clone <your-repo-url>
-cd notes_app
+git clone https://github.com/idarapatrick/Flutter-Notes-App.git
+cd Flutter-Notes-App
 ```
 
 ### 2. Install dependencies
