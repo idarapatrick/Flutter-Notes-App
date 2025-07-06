@@ -6,9 +6,24 @@ import '../blocs/notes/notes_event.dart';
 import '../blocs/notes/notes_state.dart';
 import '../blocs/auth/auth_bloc.dart';
 import '../blocs/auth/auth_event.dart';
+import '../blocs/theme/theme_cubit.dart';
 
-class NotesListScreen extends StatelessWidget {
+class NotesListScreen extends StatefulWidget {
   const NotesListScreen({super.key});
+
+  @override
+  State<NotesListScreen> createState() => _NotesListScreenState();
+}
+
+class _NotesListScreenState extends State<NotesListScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -36,6 +51,32 @@ class NotesListScreen extends StatelessWidget {
                   context.read<AuthBloc>().add(AuthLogoutRequested());
                 },
               ),
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert),
+                onSelected: (value) {
+                  if (value == 'theme') {
+                    final cubit = context.read<ThemeCubit>();
+                    final mode = cubit.state;
+                    cubit.setTheme(
+                      mode == ThemeMode.light
+                          ? ThemeMode.dark
+                          : ThemeMode.light,
+                    );
+                  } else if (value == 'profile') {
+                    Navigator.of(context).pushNamed('/profile');
+                  }
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem(
+                    value: 'theme',
+                    child: Text('Toggle Theme'),
+                  ),
+                  const PopupMenuItem(
+                    value: 'profile',
+                    child: Text('Profile/Settings'),
+                  ),
+                ],
+              ),
             ],
           ),
           body: Container(
@@ -43,6 +84,24 @@ class NotesListScreen extends StatelessWidget {
             height: double.infinity,
             child: Column(
               children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: 'Search notes...',
+                      prefixIcon: const Icon(Icons.search),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onChanged: (value) {
+                      setState(() {
+                        _searchQuery = value.trim();
+                      });
+                    },
+                  ),
+                ),
                 if (state is NotesError) ...[
                   Padding(
                     padding: const EdgeInsets.all(12.0),
@@ -97,11 +156,20 @@ class NotesListScreen extends StatelessWidget {
         ),
       );
     } else if (state is NotesLoaded) {
+      final filteredNotes = _searchQuery.isEmpty
+          ? state.notes
+          : state.notes
+                .where(
+                  (note) => note.text.toLowerCase().contains(
+                    _searchQuery.toLowerCase(),
+                  ),
+                )
+                .toList();
       return ListView.builder(
         padding: const EdgeInsets.all(16),
-        itemCount: state.notes.length,
+        itemCount: filteredNotes.length,
         itemBuilder: (context, index) {
-          final note = state.notes[index];
+          final note = filteredNotes[index];
           return _buildNoteCard(context, note);
         },
       );
